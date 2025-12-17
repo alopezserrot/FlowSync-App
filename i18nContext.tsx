@@ -41,6 +41,13 @@ const dictionary: Record<Language, Translations> = {
         'your_event': 'Your Event',
         'all_restaurants': 'All Restaurants',
         'scan_instruction': 'Scan QR codes at restaurants to begin.',
+        'discover_feed': 'Discover',
+        'get_updates': 'Get Real-time Updates',
+        'enable_push_desc': 'Enable push notifications to get order status updates and exclusive deals.',
+        'notifications_active': 'Notifications Active',
+        'you_will_receive_promos': 'You will receive order updates and promos.',
+        'enable_notifications': 'Enable',
+        'maybe_later': 'Maybe Later',
 
         // Restaurant Page
         'back_to_restaurants': 'Back to all restaurants',
@@ -185,7 +192,7 @@ const dictionary: Record<Language, Translations> = {
         'workflow_template': 'Workflow Template',
         'total_capacity': 'Total Installed Capacity (Units)',
         'edit_space': 'Edit Space',
-        'create_space': 'Add Space',
+        'create_space': 'Crear Espacio',
 
         // Settings & Staff
         'restaurant_details': 'Restaurant Details',
@@ -252,6 +259,13 @@ const dictionary: Record<Language, Translations> = {
         'your_event': 'Tu Evento',
         'all_restaurants': 'Todos los Restaurantes',
         'scan_instruction': 'Escanea códigos QR en restaurantes para empezar.',
+        'discover_feed': 'Descubrir',
+        'get_updates': 'Recibir Alertas',
+        'enable_push_desc': 'Activa notificaciones para seguir tu pedido y recibir ofertas.',
+        'notifications_active': 'Notificaciones Activas',
+        'you_will_receive_promos': 'Recibirás actualizaciones y promos.',
+        'enable_notifications': 'Activar',
+        'maybe_later': 'Quizás Luego',
 
         // Restaurant Page
         'back_to_restaurants': 'Volver a todos los restaurantes',

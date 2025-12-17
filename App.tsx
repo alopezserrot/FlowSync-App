@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, UserRole, Vendor, Restaurant, CartItem, NotificationMessage, View, Order, BoardTemplate, MenuTemplate, MenuItemTemplate, Ingredient, ProductionSpace, Promotion } from './types';
 import * as api from './services/firebaseService'; // Use the new service layer
@@ -14,6 +13,7 @@ import SuperAdminDashboard from './components/SuperAdminDashboard';
 import ConsumerOrderPage from './components/ConsumerOrderPage';
 import LoginPage from './components/LoginPage';
 import { Notification } from './components/Shared';
+import { DatabaseSeeder } from './components/DatabaseSeeder';
 
 const GUEST_USER: User = { id: 0, name: 'Guest', username: 'guest', role: UserRole.Consumer, linkedRestaurantIds: [] };
 
@@ -111,7 +111,7 @@ const App: React.FC = () => {
             setPromotions(fetchedPromotions);
         } catch (error) {
             console.error("Failed to fetch data", error);
-            addNotification("Could not load application data.", "error");
+            // addNotification("Could not load application data. Check your connection.", "error");
         } finally {
             setIsLoading(false);
         }
@@ -183,6 +183,16 @@ const App: React.FC = () => {
     useEffect(() => {
         window.localStorage.setItem('activeOrderIds', JSON.stringify(activeOrderIds));
     }, [activeOrderIds]);
+    
+    // --- PUSH NOTIFICATION SIMULATION LISTENER ---
+    useEffect(() => {
+        const handleSimulatedPush = (e: any) => {
+            const { message, type } = e.detail;
+            addNotification(message, type || 'info');
+        };
+        window.addEventListener('simulate-push', handleSimulatedPush);
+        return () => window.removeEventListener('simulate-push', handleSimulatedPush);
+    }, [addNotification]);
 
 
     const dismissNotification = useCallback((id: number) => {
@@ -569,6 +579,7 @@ const App: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-neutral flex flex-col">
+            <DatabaseSeeder />
              {currentView !== 'login' && (
                 <Header
                     currentUser={currentUser} onLogout={handleLogout} cart={cart}

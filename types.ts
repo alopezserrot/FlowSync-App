@@ -80,7 +80,7 @@ export interface Ingredient {
   vendorId: number;
   sku: string; // Added SKU
   name: string;
-  category: 'Food' | 'Drink' | 'Side' | 'Packaging' | 'Other'; // Added Category
+  category: string; // Changed to string to allow custom categories via datalist
   stock: number; // Total stock (sum of locations)
   locations: StockLocation[]; // Added Multi-location support
   unit: 'units' | 'g' | 'kg' | 'ml' | 'l';
@@ -116,6 +116,7 @@ export interface MenuItemTemplate {
   }[];
   productionSpaceIds: string[]; // Changed from single ID to array
   capacityUsage: number; // How much capacity this item consumes (default 1)
+  isSeparateFulfillment?: boolean; // Added for separate fulfillment items (e.g. drinks)
 }
 
 export interface MenuSection {
