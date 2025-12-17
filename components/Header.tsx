@@ -38,10 +38,11 @@ const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, onAdminLogin, on
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div 
-            className="text-2xl font-bold text-primary cursor-pointer flex items-center"
+            className="flex flex-col sm:flex-row sm:items-end cursor-pointer group"
             onClick={() => onNavigate('home')}
           >
-            FlowApp
+            <span className="text-2xl font-bold text-primary leading-none group-hover:text-accent transition-colors">FlowApp</span>
+            <span className="text-[10px] sm:text-xs font-medium text-gray-400 sm:ml-2 sm:mb-1 group-hover:text-white transition-colors">by FlowSync</span>
           </div>
           <div className="flex items-center space-x-4">
             
