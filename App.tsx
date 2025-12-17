@@ -579,7 +579,7 @@ const App: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-neutral flex flex-col">
-            <DatabaseSeeder />
+            {currentUser?.role === UserRole.SuperAdmin && <DatabaseSeeder />}
              {currentView !== 'login' && (
                 <Header
                     currentUser={currentUser} onLogout={handleLogout} cart={cart}
