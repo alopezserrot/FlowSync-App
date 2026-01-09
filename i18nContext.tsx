@@ -33,6 +33,8 @@ const dictionary: Record<Language, Translations> = {
         'description': 'Description',
         'image': 'Image',
         'name': 'Name',
+        'open': 'Open',
+        'closed': 'Closed',
         
         // Home
         'welcome_title': 'Welcome to FlowApp!',
@@ -204,6 +206,15 @@ const dictionary: Record<Language, Translations> = {
         'managing': 'Managing:',
         'shift_ended': 'Shift Ended - Read Only Mode',
         'no_restaurants_found': 'No restaurants found.',
+        'restaurant_profile_config': 'Restaurant Profile Configuration',
+        'basic_information': 'Basic Information',
+        'restaurant_name': 'Restaurant Name',
+        'brand_color': 'Branding Primary Color',
+        'contact_details': 'Contact Details',
+        'opening_hours': 'Operating Hours',
+        'media_multimedia': 'Multimedia Gallery',
+        'add_content': 'Add Multimedia Content',
+        'save_profile_changes': 'Save Full Profile',
 
         // Board Templates
         'workflow_templates': 'Workflow Templates',
@@ -251,6 +262,8 @@ const dictionary: Record<Language, Translations> = {
         'description': 'Descripción',
         'image': 'Imagen',
         'name': 'Nombre',
+        'open': 'Abierto',
+        'closed': 'Cerrado',
 
         // Home
         'welcome_title': '¡Bienvenido a FlowApp!',
@@ -422,6 +435,15 @@ const dictionary: Record<Language, Translations> = {
         'managing': 'Gestionando:',
         'shift_ended': 'Turno Finalizado - Modo Solo Lectura',
         'no_restaurants_found': 'No se encontraron restaurantes.',
+        'restaurant_profile_config': 'Configuración del Perfil del Restaurante',
+        'basic_information': 'Información Básica',
+        'restaurant_name': 'Nombre del Restaurante',
+        'brand_color': 'Color Primario de Marca',
+        'contact_details': 'Datos de Contacto',
+        'opening_hours': 'Horarios de Apertura',
+        'media_multimedia': 'Galería Multimedia',
+        'add_content': 'Añadir Contenido Multimedia',
+        'save_profile_changes': 'Guardar Perfil Completo',
 
         // Board Templates
         'workflow_templates': 'Plantillas de Flujo de Trabajo',
@@ -468,8 +490,10 @@ export const LanguageProvider: React.FC<{children: ReactNode}> = ({ children }) 
     };
 
     return (
-        <LanguageContext.Provider value={{ language, setLanguage, t }}>
-            {children}
-        </LanguageContext.Provider>
+        <div className="contents">
+            <LanguageContext.Provider value={{ language, setLanguage, t }}>
+                {children}
+            </LanguageContext.Provider>
+        </div>
     );
 };

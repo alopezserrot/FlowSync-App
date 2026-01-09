@@ -1,8 +1,10 @@
 
-
 import React from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { NotificationMessage } from '../types';
+
+// Re-export the type to ensure it is available to other components as expected by App.tsx imports
+export type { NotificationMessage };
 
 // --- UTILITY FUNCTIONS ---
 export const fileToBase64 = (file: File): Promise<string> => {

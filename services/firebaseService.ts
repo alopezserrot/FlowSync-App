@@ -1,5 +1,4 @@
 
-
 import { 
     collection, 
     getDocs, 
@@ -23,8 +22,6 @@ import { db, auth } from "../firebaseConfig";
 import { User, Vendor, Restaurant, Order, UserRole, BoardTemplate, MenuItemTemplate, MenuTemplate, Ingredient, ProductionSpace, Promotion } from '../types';
 
 // Helper to convert Firestore ID (string) to Number if your app uses numbers for IDs
-// Note: Moving forward, it is better to use String IDs for everything in production.
-// This helper assumes you kept Number IDs in your types for compatibility.
 const toNumberId = (id: string) => {
     const parsed = parseInt(id);
     return isNaN(parsed) ? id : parsed;
@@ -34,28 +31,25 @@ const toNumberId = (id: string) => {
 
 export const signInUser = async (username: string, password?: string): Promise<User | null> => {
     try {
-        // Migration Hack: Since current usernames aren't emails, we append a fake domain.
-        // In production, users should login with actual emails.
         const email = username.includes('@') ? username : `${username}@flowapp.test`;
+        // Handle credential verification
+        await signInWithEmailAndPassword(auth, email, password || 'password');
         
-        const userCredential = await signInWithEmailAndPassword(auth, email, password || 'password');
-        
-        // Fetch the custom user profile from Firestore 'users' collection
-        // We use the UID from Auth to find the user document, OR query by username for legacy support
         const usersRef = collection(db, "users");
-        // We try to find a user doc where username matches
         const q = query(usersRef, where("username", "==", username));
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
             const userDoc = querySnapshot.docs[0];
             return { ...userDoc.data(), id: toNumberId(userDoc.id) } as User;
-        } else {
-            // Fallback if no profile found (should not happen after seeding)
-            return null;
         }
-    } catch (error) {
-        console.error("Login failed:", error);
+        return null;
+    } catch (error: any) {
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+            console.warn("Login failed: Invalid credentials provided.");
+        } else {
+            console.error("Login failed with unexpected error:", error);
+        }
         return null;
     }
 };
@@ -87,12 +81,11 @@ export const fetchOrders = async (): Promise<Order[]> => {
         const data = d.data();
         return {
             ...data,
-            id: d.id, // Orders use String IDs
-            // Convert Firestore Timestamps back to JS Dates
+            id: d.id,
             orderTime: data.orderTime?.toDate ? data.orderTime.toDate() : new Date(data.orderTime),
             lastUpdateTime: data.lastUpdateTime?.toDate ? data.lastUpdateTime.toDate() : new Date(data.lastUpdateTime)
         } as Order;
-    }).sort((a, b) => b.orderTime.getTime() - a.orderTime.getTime()); // Sort newest first
+    }).sort((a, b) => b.orderTime.getTime() - a.orderTime.getTime());
 };
 
 export const fetchBoardTemplates = async (): Promise<BoardTemplate[]> => {
@@ -112,12 +105,12 @@ export const fetchMenuTemplates = async (): Promise<MenuTemplate[]> => {
 
 export const fetchIngredients = async (): Promise<Ingredient[]> => {
     const snapshot = await getDocs(collection(db, "ingredients"));
-    return snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Ingredient)); // Ingredients use String IDs
+    return snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Ingredient));
 };
 
 export const fetchPointsOfSale = async (): Promise<ProductionSpace[]> => {
     const snapshot = await getDocs(collection(db, "productionSpaces"));
-    return snapshot.docs.map(d => ({ ...d.data(), id: d.id } as ProductionSpace)); // IDs are strings (pos-1)
+    return snapshot.docs.map(d => ({ ...d.data(), id: d.id } as ProductionSpace));
 };
 
 export const fetchPromotions = async (): Promise<Promotion[]> => {
@@ -125,22 +118,21 @@ export const fetchPromotions = async (): Promise<Promotion[]> => {
     return snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Promotion));
 };
 
-
 // --- Data Mutation Functions ---
 
 export const createVendor = async (vendorName: string, adminUsername: string, adminPassword: string) => {
-    // 1. Create Auth User
     const email = `${adminUsername}@flowapp.test`;
     try {
-        // Create Authentication Record
-        await createUserWithEmailAndPassword(auth, email, adminPassword);
+        try {
+            await createUserWithEmailAndPassword(auth, email, adminPassword);
+        } catch (authErr: any) {
+            if (authErr.code !== 'auth/email-already-in-use') throw authErr;
+        }
 
-        // 2. Create Vendor Doc
-        const newVendorId = Date.now(); // Simple number ID generation
+        const newVendorId = Date.now();
         const newVendor: Vendor = { id: newVendorId, name: vendorName };
         await setDoc(doc(db, "vendors", newVendorId.toString()), newVendor);
 
-        // 3. Create Admin User Doc in Firestore
         const newUserId = Date.now() + 1;
         const newVendorAdmin: User = {
             id: newUserId,
@@ -148,7 +140,6 @@ export const createVendor = async (vendorName: string, adminUsername: string, ad
             username: adminUsername,
             role: UserRole.Vendor,
             vendorId: newVendorId,
-            // DO NOT STORE PASSWORD IN FIRESTORE
         };
         await setDoc(doc(db, "users", newUserId.toString()), newVendorAdmin);
 
@@ -166,7 +157,6 @@ export const updateVendor = async (updated: Vendor): Promise<Vendor> => {
 
 export const deleteVendor = async (vendorId: number): Promise<void> => {
     await deleteDoc(doc(db, "vendors", vendorId.toString()));
-    // Note: In a real app, you would use a Cloud Function to recursively delete sub-data
 };
 
 export const createRestaurant = async (newRestaurantData: Omit<Restaurant, 'id'>): Promise<Restaurant> => {
@@ -197,7 +187,12 @@ export const deleteUser = async (userId: number): Promise<void> => {
 export const createRestaurantAdmin = async (name: string, username: string, password: string, restaurantId: number, vendorId?: number): Promise<User> => {
     const email = `${username}@flowapp.test`;
     try {
-        await createUserWithEmailAndPassword(auth, email, password);
+        try {
+            await createUserWithEmailAndPassword(auth, email, password);
+        } catch (authErr: any) {
+            if (authErr.code !== 'auth/email-already-in-use') throw authErr;
+        }
+
         const newUserId = Date.now();
         const newAdmin: User = {
             id: newUserId,
@@ -212,7 +207,6 @@ export const createRestaurantAdmin = async (name: string, username: string, pass
                 canManageSettings: true,
                 canManageOrders: true,
             },
-            // Default schedule
             permissionSchedule: {
                 monday: { isActive: true, startTime: '09:00', endTime: '22:00' },
                 tuesday: { isActive: true, startTime: '09:00', endTime: '22:00' },
@@ -242,7 +236,6 @@ export const createOrder = async (orderData: Omit<Order, 'id' | 'status' | 'orde
         lastUpdateTime: now,
     };
     
-    // Convert Dates to Timestamps for Firestore
     const firestoreOrder = {
         ...newOrder,
         orderTime: Timestamp.fromDate(now),
@@ -260,9 +253,8 @@ export const updateOrderStatus = async (orderId: string, status: string, reason?
     if (!orderSnap.exists()) return null;
 
     const data = orderSnap.data();
-    // Helper to safely handle timestamps or dates or strings
     const toDate = (val: any): Date => {
-        if (val?.toDate) return val.toDate(); // Firestore Timestamp
+        if (val?.toDate) return val.toDate();
         if (val instanceof Date) return val;
         return new Date(val);
     };
@@ -275,7 +267,6 @@ export const updateOrderStatus = async (orderId: string, status: string, reason?
     };
 
     const now = new Date();
-    
     const updates: any = {
         status,
         lastUpdateTime: Timestamp.fromDate(now)
@@ -288,14 +279,6 @@ export const updateOrderStatus = async (orderId: string, status: string, reason?
     }
 
     await updateDoc(orderRef, updates);
-
-    // Stock deduction logic (basic implementation)
-    // In production, run this in a Transaction
-    if (status === 'accepted') {
-        // Logic to update ingredient stock...
-        // For brevity in this migration, assuming stock deduction handled similarly
-    }
-
     return { ...currentOrder, ...updates, lastUpdateTime: now };
 };
 
@@ -314,13 +297,8 @@ export const findOrdersByPhone = async (phone: string): Promise<Order[]> => {
     } as Order));
 };
 
-
-// --- Template & Inventory CRUD ---
-
-// Generic helper to create simple objects
 const createGeneric = async (collectionName: string, data: any) => {
     const id = data.id || Date.now();
-    // Ensure ID is string for Firestore doc key
     await setDoc(doc(db, collectionName, id.toString()), { ...data, id });
     return { ...data, id };
 };

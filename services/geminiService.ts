@@ -6,7 +6,9 @@ import { GoogleGenAI } from "@google/genai";
 // It is assumed to be configured externally.
 let ai: GoogleGenAI | null = null;
 try {
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+    if (process.env.API_KEY) {
+        ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    }
 } catch(e) {
     console.error("Failed to initialize GoogleGenAI. Is API_KEY set?", e);
 }
@@ -17,15 +19,18 @@ export const generateDescription = async (itemName: string, ingredients: string[
     return Promise.resolve("AI service is not available. Please check your API key configuration.");
   }
   
-  const model = 'gemini-2.5-flash';
+  // Use recommended model for basic text tasks
+  const modelName = 'gemini-3-flash-preview';
   const prompt = `Write a short, appetizing menu description for "${itemName}" with ingredients: ${ingredients.join(', ')}.`;
 
   try {
+    // Calling generateContent with the model name directly as per guidelines
     const response = await ai.models.generateContent({
-        model: model,
+        model: modelName,
         contents: prompt
     });
     
+    // Accessing .text property directly as per guidelines
     if (response.text) {
         return response.text.trim();
     } else {

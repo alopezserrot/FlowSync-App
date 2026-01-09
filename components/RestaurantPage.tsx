@@ -37,6 +37,8 @@ const MediaCard: React.FC<{ item: MediaContent }> = ({ item }) => {
     switch (item.type) {
       case MediaType.Video:
         return <video controls src={item.source} className="w-full h-48 object-cover rounded-t-lg bg-black"></video>;
+      case MediaType.Image:
+        return <img src={item.source} alt={item.title} className="w-full h-48 object-cover rounded-t-lg bg-gray-100" />;
       case MediaType.Audio:
         return <div className="p-4"><audio controls src={item.source} className="w-full"></audio></div>;
       case MediaType.Text:
@@ -54,7 +56,7 @@ const MediaCard: React.FC<{ item: MediaContent }> = ({ item }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col transform hover:-translate-y-1 transition-transform duration-300">
-      <div className="h-48 flex items-center justify-center">{renderMedia()}</div>
+      <div className="h-48 flex items-center justify-center bg-gray-50">{renderMedia()}</div>
       <div className="p-4 flex-grow">
         <h3 className="font-bold text-lg text-secondary">{item.title}</h3>
         {item.type !== MediaType.Link && <p className="text-sm text-gray-500 mt-1">{item.description}</p>}
