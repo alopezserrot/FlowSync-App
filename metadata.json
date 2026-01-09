@@ -1,0 +1,9 @@
+
+{
+  "name": "FlowApp v1.1 - Uber Eats Edition",
+  "description": "Food delivery platform featuring a social-style video feed, push notification simulation, and advanced vendor dashboards.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
