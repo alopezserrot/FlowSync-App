@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, Suspense } from 'react';
+import { HashRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { I18nextProvider, useTranslation } from 'react-i18next';
 import i18n from './i18nContext';
 import { collection, onSnapshot, doc, getDoc, query, where } from "firebase/firestore";
@@ -8,17 +8,17 @@ import { collection, onSnapshot, doc, getDoc, query, where } from "firebase/fire
 import Header from './components/Header';
 import { HomePage } from './components/HomePage';
 import { LoginPage } from './components/LoginPage';
-import { RestaurantPage } from './components/RestaurantPage';
+import RestaurantPage from './components/RestaurantPage';
 import { VendorDashboard } from './components/VendorDashboard';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { ConsumerOrderPage } from './components/ConsumerOrderPage';
 import { CheckoutPage } from './components/CheckoutPage';
-import { DatabaseSeeder } from './components/DatabaseSeeder';
+import { DatabaseSeeder } from './components/DatabaseSeeder'; // Direct import
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 import { auth, db } from './firebaseConfig';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { Restaurant, Order, UserRole, CartItem } from './types';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { Restaurant, Order, User, UserRole, CartItem } from './types';
 
 const App: React.FC = () => {
     return (
@@ -32,8 +32,8 @@ const App: React.FC = () => {
 
 const MainApp: React.FC = () => {
     const { t } = useTranslation();
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [userRole, setUserRole] = useState<UserRole | null>(null);
+    const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+    const [appUser, setAppUser] = useState<User | null>(null);
     const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -48,15 +48,18 @@ const MainApp: React.FC = () => {
             if (user) {
                 const userDoc = await getDoc(doc(db, "users", user.uid));
                 if (userDoc.exists()) {
-                    const role = userDoc.data().role as UserRole;
-                    setUserRole(role);
+                    const userData = { id: user.uid, ...userDoc.data() } as User;
+                    setAppUser(userData);
                     if (location.pathname === '/login') {
-                        if (role === 'superadmin') navigate('/superadmin-dashboard');
-                        else if (role === 'vendor' || role === 'restaurant_admin') navigate('/vendor-dashboard');
+                        if (userData.role === 'superadmin') navigate('/superadmin-dashboard');
+                        else if (userData.role === 'vendor' || userData.role === 'restaurant_admin') navigate('/vendor-dashboard');
+                        else navigate('/');
                     }
+                } else {
+                  setAppUser({ id: user.uid, email: user.email || '', role: 'consumer' });
                 }
             } else {
-                setUserRole(null);
+                setAppUser(null);
             }
             setIsLoading(false);
         });
@@ -85,18 +88,19 @@ const MainApp: React.FC = () => {
     const activeOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'rejected');
 
     if (isLoading) {
-        return <div className="flex justify-center items-center h-screen">{t('loading')}</div>;
+        return <div className="flex justify-center items-center h-screen dark:bg-slate-900"><p className="dark:text-white">{t('loading')}</p></div>;
     }
 
     return (
         <div className="antialiased text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 min-h-screen">
             <Header 
                 currentUser={currentUser} 
-                userRole={userRole} 
+                userRole={appUser?.role || null} 
                 cart={cart} 
                 activeOrderCount={activeOrders.length} 
             />
-            <main className="p-4">
+            <main>
+              <Suspense fallback={<div className="text-center p-10">{t('loading')}</div>}>
                 <Routes>
                     <Route path="/" element={<HomePage restaurants={restaurants} />} />
                     <Route path="/restaurant/:id" element={<RestaurantPage restaurants={restaurants} cart={cart} setCart={setCart} />} />
@@ -108,21 +112,29 @@ const MainApp: React.FC = () => {
                     <Route 
                         path="/vendor-dashboard" 
                         element={
-                            <ProtectedRoute user={currentUser} role={userRole} allowedRoles={['vendor', 'restaurant_admin', 'superadmin']}>
-                                <VendorDashboard />
+                            <ProtectedRoute user={appUser} allowedRoles={['vendor', 'restaurant_admin', 'superadmin']}>
+                                {appUser && <VendorDashboard currentUser={appUser} />}
                             </ProtectedRoute>
                         } 
                     />
                     <Route 
                         path="/superadmin-dashboard" 
                         element={
-                            <ProtectedRoute user={currentUser} role={userRole} allowedRoles={['superadmin']}>
+                            <ProtectedRoute user={appUser} allowedRoles={['superadmin']}>
                                 <SuperAdminDashboard />
                             </ProtectedRoute>
                         } 
                     />
-                    <Route path="/seed-database" element={<DatabaseSeeder />} />
+                    <Route 
+                        path="/seed-database" 
+                        element={
+                            <ProtectedRoute user={appUser} allowedRoles={['superadmin']}>
+                                <DatabaseSeeder />
+                            </ProtectedRoute>
+                        } 
+                    />
                 </Routes>
+              </Suspense>
             </main>
         </div>
     );

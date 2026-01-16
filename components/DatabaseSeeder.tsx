@@ -3,7 +3,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { collection, getDocs, writeBatch, doc } from "firebase/firestore"; 
 import { db } from '../firebaseConfig';
-import { restaurants, menuTemplates, ingredients, items as menuItems, promotions, users } from '../seedData';
+// Corrected import path from '../seedData' to '../data'
+import { restaurants, menuTemplates, ingredients, items as menuItems, promotions, users } from '../data';
 
 const collections = [
     { name: 'restaurants', data: restaurants },
@@ -69,4 +70,4 @@ export const DatabaseSeeder: React.FC = () => {
             </div>
         </div>
     );
-}
+};

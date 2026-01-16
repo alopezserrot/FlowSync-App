@@ -203,6 +203,16 @@ const resources = {
             'specific_item': 'Specific Item (Optional)',
             'apply_whole_order': 'Apply to Whole Order',
             'create_promo_btn': 'Create Promo',
+            'superadmin_dashboard': 'Superadmin Dashboard',
+            'total_restaurants': 'Total Restaurants',
+            'total_orders': 'Total Orders',
+            'total_users': 'Total Users',
+            'admin_tools': 'Admin Tools',
+            'manage_database': 'Manage Database',
+            'recent_orders': 'Recent Orders',
+            'order_id': 'Order ID',
+            'restaurant': 'Restaurant',
+            'status': 'Status'
         }
     },
     es: {
@@ -405,6 +415,16 @@ const resources = {
             'specific_item': 'Artículo Específico (Opcional)',
             'apply_whole_order': 'Aplicar a Todo el Pedido',
             'create_promo_btn': 'Crear Promo',
+            'superadmin_dashboard': 'Panel de Superadministrador',
+            'total_restaurants': 'Restaurantes Totales',
+            'total_orders': 'Pedidos Totales',
+            'total_users': 'Usuarios Totales',
+            'admin_tools': 'Herramientas de Admin',
+            'manage_database': 'Gestionar Base de Datos',
+            'recent_orders': 'Pedidos Recientes',
+            'order_id': 'ID Pedido',
+            'restaurant': 'Restaurante',
+            'status': 'Estado'
         }
     }
 };
