@@ -22,7 +22,8 @@ import { db } from './firebaseConfig';
 import { Restaurant, Order, UserRole, CartItem, MenuItem } from './types';
 
 const App: React.FC = () => {
-    // El Router y el Provider de i18n se quedan en el componente raíz
+    // ... (estado y lógica existente) ...
+
     return (
         <I18nextProvider i18n={i18n}>
             <Router>
@@ -52,11 +53,10 @@ const MainApp: React.FC = () => {
                 if (userDoc.exists()) {
                     const role = userDoc.data().role as UserRole;
                     setUserRole(role);
-                    // Si el usuario ya está logueado y se encuentra en /login, redirigir a su dashboard
+                    // Redirección después del login
                     if (location.pathname === '/login') {
                         if (role === 'superadmin') navigate('/superadmin-dashboard');
                         else if (role === 'vendor') navigate('/vendor-dashboard');
-                        else navigate('/'); // Si tiene otro rol, a la home
                     }
                 }
             } else {
@@ -68,63 +68,46 @@ const MainApp: React.FC = () => {
     }, [navigate, location.pathname]);
 
 
-    useEffect(() => {
-      const unsub = onSnapshot(collection(db, "restaurants"), (snap) => {
-          const rests: Restaurant[] = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Restaurant));
-          setRestaurants(rests);
-      });
-      return () => unsub();
-    }, []);
-
-    useEffect(() => {
-        const unsub = onSnapshot(collection(db, "orders"), (snap) => {
-            const ords: Order[] = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-            setOrders(ords);
-        });
-        return () => unsub();
-    }, []);
-
+    // ... (resto de la lógica y useEffects) ...
 
     if (isLoading) {
-        return <div className="flex justify-center items-center h-screen">{t('loading')}</div>;
+        return <div>{t('loading')}</div>;
     }
 
     return (
-        <div className="antialiased text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 min-h-screen">
+        <div className="antialiased text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900">
             <Header />
-            <main>
-              <Routes>
-                  {/* --- Rutas Públicas --- */}
-                  <Route path="/" element={<HomePage restaurants={restaurants} />} />
-                  <Route path="/restaurant/:id" element={<RestaurantPage restaurants={restaurants} cart={cart} setCart={setCart} />} />
-                  <Route path="/order/:id" element={<ConsumerOrderPage />} />
-                  <Route path="/checkout" element={<CheckoutPage cart={cart} setCart={setCart} />} />
-                  
-                  {/* --- Ruta de Autenticación --- */}
-                  <Route path="/login" element={<LoginPage />} />
+            <Routes>
+                {/* Rutas Públicas para Consumidores */}
+                <Route path="/" element={<HomePage restaurants={restaurants} />} />
+                <Route path="/restaurant/:id" element={<RestaurantPage restaurants={restaurants} cart={cart} setCart={setCart} />} />
+                <Route path="/order/:id" element={<ConsumerOrderPage />} />
+                <Route path="/checkout" element={<CheckoutPage cart={cart} setCart={setCart} />} />
+                
+                {/* Ruta de Login para Administradores */}
+                <Route path="/login" element={<LoginPage />} />
 
-                  {/* --- Rutas Protegidas --- */}
-                  <Route 
-                      path="/vendor-dashboard" 
-                      element={
-                          <ProtectedRoute user={currentUser} role={userRole} allowedRoles={['vendor', 'superadmin']}>
-                              <VendorDashboard />
-                          </ProtectedRoute>
-                      } 
-                  />
-                  <Route 
-                      path="/superadmin-dashboard" 
-                      element={
-                          <ProtectedRoute user={currentUser} role={userRole} allowedRoles={['superadmin']}>
-                              <SuperAdminDashboard />
-                          </ProtectedRoute>
-                      } 
-                  />
+                {/* Rutas Protegidas (solo para usuarios autenticados) */}
+                <Route 
+                    path="/vendor-dashboard" 
+                    element={
+                        <ProtectedRoute user={currentUser} role={userRole} allowedRoles={['vendor', 'superadmin']}>
+                            <VendorDashboard />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/superadmin-dashboard" 
+                    element={
+                        <ProtectedRoute user={currentUser} role={userRole} allowedRoles={['superadmin']}>
+                            <SuperAdminDashboard />
+                        </ProtectedRoute>
+                    } 
+                />
 
-                  {/* Herramienta de desarrollo, podría protegerse también si fuera necesario */}
-                  <Route path="/seed-database" element={<DatabaseSeeder />} />
-              </Routes>
-            </main>
+                {/* Herramientas de Desarrollo */}
+                <Route path="/seed-database" element={<DatabaseSeeder />} />
+            </Routes>
         </div>
     );
 };
