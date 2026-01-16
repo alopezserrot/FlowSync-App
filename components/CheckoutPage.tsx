@@ -1,211 +1,122 @@
 
 import React, { useState } from 'react';
-import { CartItem, Restaurant, PaymentMethod } from '../types';
-import { CreditCardIcon, PayPalIcon, CashIcon } from './Shared';
-import { useLanguage } from '../i18nContext';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from '../firebaseConfig';
+import { CartItem, OrderStatus, PaymentMethod } from '../types';
 
 interface CheckoutPageProps {
   cart: CartItem[];
-  restaurant: Restaurant | null;
-  onPlaceOrder: (phoneNumber: string) => void;
-  onBack: () => void;
+  setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
 }
 
-const COUNTRY_CODES = [
-    { code: 'ES', dial_code: '+34', flag: '🇪🇸' },
-    { code: 'US', dial_code: '+1', flag: '🇺🇸' },
-    { code: 'MX', dial_code: '+52', flag: '🇲🇽' },
-    { code: 'AR', dial_code: '+54', flag: '🇦🇷' },
-    { code: 'CO', dial_code: '+57', flag: '🇨🇴' },
-    { code: 'CL', dial_code: '+56', flag: '🇨🇱' },
-    { code: 'PE', dial_code: '+51', flag: '🇵🇪' },
-    { code: 'UK', dial_code: '+44', flag: '🇬🇧' },
-    { code: 'FR', dial_code: '+33', flag: '🇫🇷' },
-    { code: 'DE', dial_code: '+49', flag: '🇩🇪' },
-    { code: 'IT', dial_code: '+39', flag: '🇮🇹' },
-    { code: 'PT', dial_code: '+351', flag: '🇵🇹' },
-];
-
-const PaymentOption: React.FC<{
-    method: PaymentMethod;
-    children: React.ReactNode;
-    isSelected: boolean;
-    onSelect: () => void;
-}> = ({ method, children, isSelected, onSelect }) => {
-    const ICONS: Record<PaymentMethod, React.ReactNode> = {
-        [PaymentMethod.CreditCard]: <CreditCardIcon className="w-6 h-6 mr-3"/>,
-        [PaymentMethod.Stripe]: <CreditCardIcon className="w-6 h-6 mr-3"/>,
-        [PaymentMethod.PayPal]: <PayPalIcon className="w-6 h-6 mr-3 text-blue-800"/>,
-        [PaymentMethod.Cash]: <CashIcon className="w-6 h-6 mr-3"/>,
-        [PaymentMethod.Bizum]: <span className="font-bold text-lg mr-3">B</span>,
-    }
-    return (
-         <div className={`border border-gray-200 rounded-lg p-4 transition-all duration-300 ${!isSelected ? 'opacity-50' : 'opacity-100'}`}>
-            <label className="flex items-center cursor-pointer">
-                <input 
-                    type="radio" 
-                    name="paymentMethod" 
-                    value={method} 
-                    checked={isSelected}
-                    onChange={onSelect}
-                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300" />
-                <span className="ml-3 flex items-center font-medium text-gray-800">
-                    {ICONS[method]}
-                    {method}
-                </span>
-            </label>
-            {isSelected && children}
-        </div>
-    )
-}
-
-const CreditCardForm: React.FC<{isRequired: boolean}> = ({ isRequired }) => {
-    const { t } = useLanguage();
-    return (
-        <div className="mt-4 pl-8 space-y-4">
-            <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">{t('name_on_card')}</label>
-                <input type="text" id="name" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary" required={isRequired} />
-            </div>
-            <div>
-                <label htmlFor="card-number" className="block text-sm font-medium text-gray-700">{t('card_number')}</label>
-                <input type="text" id="card-number" placeholder="•••• •••• •••• 4242" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary" required={isRequired} />
-            </div>
-            <div className="flex space-x-4">
-                <div className="flex-1">
-                <label htmlFor="expiry" className="block text-sm font-medium text-gray-700">{t('expiry')} (MM/YY)</label>
-                <input type="text" id="expiry" placeholder="01/25" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary" required={isRequired} />
-                </div>
-                <div className="flex-1">
-                <label htmlFor="cvc" className="block text-sm font-medium text-gray-700">{t('cvc')}</label>
-                <input type="text" id="cvc" placeholder="123" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary" required={isRequired} />
-                </div>
-            </div>
-        </div>
-    );
-};
-
-
-const CheckoutPage: React.FC<CheckoutPageProps> = ({ cart, restaurant, onPlaceOrder, onBack }) => {
-  const { t } = useLanguage();
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(restaurant?.paymentMethods[0] || null);
-  
-  const [countryCode, setCountryCode] = useState(COUNTRY_CODES[0].dial_code);
-  const [localPhoneNumber, setLocalPhoneNumber] = useState('');
+export const CheckoutPage: React.FC<CheckoutPageProps> = ({ cart, setCart }) => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [customerName, setCustomerName] = useState('');
+  const [tableNumber, setTableNumber] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CreditCard);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const taxes = subtotal * 0.08;
-  const deliveryFee = 5.00;
-  const total = subtotal + taxes + deliveryFee;
+  const tax = subtotal * 0.08;
+  const total = subtotal + tax;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Combine country code and local number
-    onPlaceOrder(`${countryCode} ${localPhoneNumber}`);
+    if (cart.length === 0) return;
+
+    setIsProcessing(true);
+    try {
+      const restaurantId = cart[0].restaurantId;
+      const orderData = {
+        restaurantId,
+        items: cart,
+        customerName,
+        tableNumber,
+        paymentMethod,
+        status: OrderStatus.Pending,
+        subtotal,
+        tax,
+        total,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      const docRef = await addDoc(collection(db, "orders"), orderData);
+      setCart([]);
+      navigate(`/order/${docRef.id}`);
+
+    } catch (error) {
+      console.error("Error placing order: ", error);
+      // Here you could show an error message to the user
+    } finally {
+      setIsProcessing(false);
+    }
   };
-  
-  if (!restaurant) {
-      return <div>{t('loading')}</div>
+
+  if (cart.length === 0 && !isProcessing) {
+    return (
+        <div className="text-center p-10">
+            <p className="mb-4">{t('empty_cart_checkout')}</p>
+            <button onClick={() => navigate('/')} className="bg-blue-600 text-white px-6 py-2 rounded-lg">
+                {t('back_to_menu')}
+            </button>
+        </div>
+    );
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <button onClick={onBack} className="text-sm text-primary mb-4 hover:underline">
-        &larr; {t('back_to_restaurant')}
-      </button>
-      <h2 className="text-3xl font-extrabold text-secondary mb-6">{t('checkout')}</h2>
+    <div className="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8 animate-fade-in">
+      <h1 className="text-3xl font-extrabold text-slate-800 dark:text-slate-100 mb-6">{t('checkout')}</h1>
+      <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-bold mb-4">{t('your_information')}</h2>
+          <div className="space-y-4">
+             <div>
+                <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('customer_name')}</label>
+                <input type="text" id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} required className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-50 dark:bg-slate-700"/>
+            </div>
+            <div>
+                <label htmlFor="tableNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('table_number')}</label>
+                <input type="text" id="tableNumber" value={tableNumber} onChange={e => setTableNumber(e.target.value)} required className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-50 dark:bg-slate-700"/>
+            </div>
+          </div>
+        </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left side: contact + payment */}
-        <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-bold border-b pb-2 mb-4 text-gray-800">{t('contact_payment')}</h3>
-                <div className="space-y-6">
-                    <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700">{t('phone_label')}</label>
-                        <div className="mt-1 flex rounded-md shadow-sm">
-                            <select
-                                value={countryCode}
-                                onChange={(e) => setCountryCode(e.target.value)}
-                                className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm focus:ring-primary focus:border-primary"
-                                style={{ minWidth: '100px' }}
-                            >
-                                {COUNTRY_CODES.map((country) => (
-                                    <option key={country.code} value={country.dial_code}>
-                                        {country.flag} {country.dial_code}
-                                    </option>
-                                ))}
-                            </select>
-                            <input
-                                type="tel"
-                                id="phone"
-                                name="phone"
-                                value={localPhoneNumber}
-                                onChange={(e) => setLocalPhoneNumber(e.target.value)}
-                                className="flex-1 block w-full min-w-0 rounded-none rounded-r-md border border-gray-300 px-3 py-2 focus:ring-primary focus:border-primary sm:text-sm"
-                                placeholder="612 345 678"
-                                required
-                            />
-                        </div>
+        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-bold mb-4">{t('order_summary')}</h2>
+            <div className="space-y-2">
+                {cart.map(item => (
+                    <div key={item.cartItemId} className="flex justify-between">
+                        <span>{item.name} x {item.quantity}</span>
+                        <span>${(item.price * item.quantity).toFixed(2)}</span>
                     </div>
-                    <div className="border-t pt-6">
-                        <h4 className="text-lg font-semibold mb-4 text-gray-800">{t('payment_method')}</h4>
-                        <div className="space-y-4">
-                            {restaurant.paymentMethods.includes(PaymentMethod.CreditCard) && <PaymentOption method={PaymentMethod.CreditCard} isSelected={selectedMethod === PaymentMethod.CreditCard} onSelect={() => setSelectedMethod(PaymentMethod.CreditCard)}><CreditCardForm isRequired={selectedMethod === PaymentMethod.CreditCard}/></PaymentOption>}
-                            {restaurant.paymentMethods.includes(PaymentMethod.Stripe) && <PaymentOption method={PaymentMethod.Stripe} isSelected={selectedMethod === PaymentMethod.Stripe} onSelect={() => setSelectedMethod(PaymentMethod.Stripe)}><CreditCardForm isRequired={selectedMethod === PaymentMethod.Stripe}/></PaymentOption>}
-                            {restaurant.paymentMethods.includes(PaymentMethod.PayPal) && <PaymentOption method={PaymentMethod.PayPal} isSelected={selectedMethod === PaymentMethod.PayPal} onSelect={() => setSelectedMethod(PaymentMethod.PayPal)}><p className="text-sm text-gray-500 mt-2 pl-8">{t('pay_paypal_hint')}</p></PaymentOption>}
-                            {restaurant.paymentMethods.includes(PaymentMethod.Bizum) && <PaymentOption method={PaymentMethod.Bizum} isSelected={selectedMethod === PaymentMethod.Bizum} onSelect={() => setSelectedMethod(PaymentMethod.Bizum)}><p className="text-sm text-gray-500 mt-2 pl-8">{t('pay_bizum_hint')}</p></PaymentOption>}
-                            {restaurant.paymentMethods.includes(PaymentMethod.Cash) && <PaymentOption method={PaymentMethod.Cash} isSelected={selectedMethod === PaymentMethod.Cash} onSelect={() => setSelectedMethod(PaymentMethod.Cash)}><p className="text-sm text-gray-500 mt-2 pl-8">{t('pay_cash_hint')}</p></PaymentOption>}
-                        </div>
-                    </div>
-                </div>
+                ))}
+            </div>
+            <div className="border-t mt-4 pt-4 space-y-2">
+                <div className="flex justify-between"><span>{t('subtotal')}</span><span>${subtotal.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>{t('tax')}</span><span>${tax.toFixed(2)}</span></div>
+                <div className="flex justify-between font-bold text-lg"><span>{t('total')}</span><span>${total.toFixed(2)}</span></div>
             </div>
         </div>
 
-        {/* Order Summary */}
-        <div className="lg:col-span-1 bg-white p-6 rounded-lg shadow-md h-fit">
-          <h3 className="text-xl font-bold border-b pb-2 mb-4 text-gray-800">{t('your_order')} from {restaurant.name}</h3>
-          <div className="space-y-3">
-            {cart.map(item => (
-              <div key={item.cartItemId}>
-                <div className="flex justify-between">
-                  <span className="text-gray-800">{item.quantity} x {item.name}</span>
-                  <span className="text-gray-800">${(item.price * item.quantity).toFixed(2)}</span>
-                </div>
-                {item.removedIngredients && item.removedIngredients.length > 0 && (
-                    <p className="text-xs text-red-600 pl-2"> - No: {item.removedIngredients.join(', ')}</p>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 pt-4 border-t space-y-2">
-            <div className="flex justify-between text-gray-600">
-              <span>{t('subtotal')}</span>
-              <span>${subtotal.toFixed(2)}</span>
+        <div className="md:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-bold mb-4">{t('payment_method')}</h2>
+            <div className="flex space-x-4">
+                {/* Simplified Payment Options */}
+                <button type="button" onClick={() => setPaymentMethod(PaymentMethod.CreditCard)} className={`px-4 py-2 rounded-lg border ${paymentMethod === PaymentMethod.CreditCard ? 'bg-blue-600 text-white border-blue-600' : 'bg-transparent'}`}>{t('credit_card')}</button>
+                <button type="button" onClick={() => setPaymentMethod(PaymentMethod.Cash)} className={`px-4 py-2 rounded-lg border ${paymentMethod === PaymentMethod.Cash ? 'bg-blue-600 text-white border-blue-600' : 'bg-transparent'}`}>{t('cash')}</button>
             </div>
-            <div className="flex justify-between text-gray-600">
-              <span>{t('taxes')}</span>
-              <span>${taxes.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-gray-600">
-              <span>{t('delivery')}</span>
-              <span>${deliveryFee.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t text-gray-900">
-              <span>{t('total')}</span>
-              <span>${total.toFixed(2)}</span>
-            </div>
-          </div>
-           <button
-              type="submit"
-              className="w-full mt-6 bg-primary text-white py-3 rounded-lg font-bold hover:bg-orange-600 transition-colors"
-            >
-              {t('place_order')}
-            </button>
+        </div>
+
+        <div className="md:col-span-2">
+          <button type="submit" disabled={isProcessing} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg disabled:bg-gray-400">
+            {isProcessing ? t('processing_order') : t('place_order')}
+          </button>
         </div>
       </form>
     </div>
   );
 };
-
-export default CheckoutPage;
