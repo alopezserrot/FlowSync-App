@@ -7,13 +7,13 @@ import { collection, onSnapshot, doc, getDoc, query, where } from "firebase/fire
 
 import Header from './components/Header';
 import { HomePage } from './components/HomePage';
-import { LoginPage } from './components/LoginPage';
+import LoginPage from './components/LoginPage'; // Corrected import
 import RestaurantPage from './components/RestaurantPage';
 import { VendorDashboard } from './components/VendorDashboard';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { ConsumerOrderPage } from './components/ConsumerOrderPage';
 import { CheckoutPage } from './components/CheckoutPage';
-import { DatabaseSeeder } from './components/DatabaseSeeder'; // Direct import
+import { DatabaseSeeder } from './components/DatabaseSeeder';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 import { auth, db } from './firebaseConfig';
