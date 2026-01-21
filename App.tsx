@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { HashRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
-import { I18nextProvider, useTranslation } from 'react-i18next';
-import i18n from './i18nContext';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { collection, onSnapshot, doc, getDoc, query, where } from "firebase/firestore";
 
 import Header from './components/Header';
 import { HomePage } from './components/HomePage';
-import LoginPage from './components/LoginPage'; // Corrected import
+import LoginPage from './components/LoginPage';
 import RestaurantPage from './components/RestaurantPage';
 import { VendorDashboard } from './components/VendorDashboard';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
@@ -18,19 +17,9 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 
 import { auth, db } from './firebaseConfig';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { Restaurant, Order, User, UserRole, CartItem } from './types';
+import { Restaurant, Order, User, CartItem } from './types';
 
 const App: React.FC = () => {
-    return (
-        <I18nextProvider i18n={i18n}>
-            <Router>
-                <MainApp />
-            </Router>
-        </I18nextProvider>
-    );
-};
-
-const MainApp: React.FC = () => {
     const { t } = useTranslation();
     const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
     const [appUser, setAppUser] = useState<User | null>(null);

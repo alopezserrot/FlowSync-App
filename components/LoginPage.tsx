@@ -19,9 +19,10 @@ const LoginPage: React.FC = () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       // The onAuthStateChanged listener in App.tsx will handle redirection.
-    } catch (err) {
-      setError(t('invalid_credentials'));
-      console.error(err);
+    } catch (err: any) {
+      const errorCode = err.code || 'unknown_error';
+      setError(`Error: ${errorCode}`); // Show the specific Firebase error code
+      console.error("Firebase Auth Error:", err);
     }
     setIsLoading(false);
   };
