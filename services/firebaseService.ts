@@ -19,7 +19,7 @@ import {
 } from "firebase/auth";
 
 import { db, auth } from "../firebaseConfig";
-import { User, Vendor, Restaurant, Order, UserRole, BoardTemplate, MenuItemTemplate, MenuTemplate, Ingredient, ProductionSpace, Promotion } from '../types';
+import { User, Vendor, Restaurant, Order, UserRole, BoardTemplate, MenuItemTemplate, MenuTemplate, Ingredient, ProductionSpace, Promotion, PaymentMethod } from '../types';
 
 // Helper to convert Firestore ID (string) to Number if your app uses numbers for IDs
 const toNumberId = (id: string) => {
@@ -225,6 +225,7 @@ export const createRestaurantAdmin = async (name: string, username: string, pass
     }
 };
 
+// Modified to accept the new paymentMethod field
 export const createOrder = async (orderData: Omit<Order, 'id' | 'status' | 'orderTime' | 'lastUpdateTime'>): Promise<Order> => {
     const newOrderId = `ORD-${Date.now().toString().slice(-6)}`;
     const now = new Date();
@@ -239,7 +240,8 @@ export const createOrder = async (orderData: Omit<Order, 'id' | 'status' | 'orde
     const firestoreOrder = {
         ...newOrder,
         orderTime: Timestamp.fromDate(now),
-        lastUpdateTime: Timestamp.fromDate(now)
+        lastUpdateTime: Timestamp.fromDate(now),
+        paymentMethod: newOrder.paymentMethod // Ensure paymentMethod is saved
     };
 
     await setDoc(doc(db, "orders", newOrderId), firestoreOrder);

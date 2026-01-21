@@ -212,7 +212,17 @@ const resources = {
             'recent_orders': 'Recent Orders',
             'order_id': 'Order ID',
             'restaurant': 'Restaurant',
-            'status': 'Status'
+            'status': 'Status',
+            'your_information': 'Your Information',
+            'order_summary': 'Order Summary',
+            'processing_order': 'Processing...',
+            'credit_card': 'Credit Card',
+            'cash': 'Cash',
+            'empty_cart_checkout': 'Your cart is empty. Add items to place an order.',
+            'back_to_menu': 'Back to Menu',
+            'order_status': 'Order Status',
+            'order_not_found': 'Order not found.',
+            'no_order_id': 'No order ID provided.'
         }
     },
     es: {
@@ -424,7 +434,17 @@ const resources = {
             'recent_orders': 'Pedidos Recientes',
             'order_id': 'ID Pedido',
             'restaurant': 'Restaurante',
-            'status': 'Estado'
+            'status': 'Estado',
+            'your_information': 'Tu Información',
+            'order_summary': 'Resumen del Pedido',
+            'processing_order': 'Procesando...',
+            'credit_card': 'Tarjeta de Crédito',
+            'cash': 'Efectivo',
+            'empty_cart_checkout': 'Tu carrito está vacío. Añade productos para realizar un pedido.',
+            'back_to_menu': 'Volver al Menú',
+            'order_status': 'Estado del Pedido',
+            'order_not_found': 'Pedido no encontrado.',
+            'no_order_id': 'No se proporcionó ID de pedido.'
         }
     }
 };

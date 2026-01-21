@@ -240,6 +240,7 @@ export interface Order {
     orderTime: Date;
     lastUpdateTime: Date;
     customerPhoneNumber?: string;
+    paymentMethod: PaymentMethod; // Added this field
     completionTime?: number; // in minutes
     rejectionReason?: string;
 }
